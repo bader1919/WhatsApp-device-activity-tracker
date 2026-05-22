@@ -3,7 +3,7 @@ version: '3.8'
 services:
   backend:
     build:
-      context: .
+      context: /data/coolify/source/yglggw8e51wb6bnqeq8tfliq  # Path to your source code
       dockerfile: Dockerfile
       args:
         - PORT=${BACKEND_PORT:-3001}
@@ -11,30 +11,31 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - PORT=${BACKEND_PORT:-3001}
-      - SIGNAL_API_URL=http://signal-api:8080  # Internal Docker networking
+      - SIGNAL_API_URL=http://signal-api:8080
       - NODE_ENV=${NODE_ENV:-production}
       - SERVICE_URL_BACKEND=https://back.app.bymb.bh
       - SERVICE_FQDN_BACKEND=back.app.bymb.bh
     volumes:
-      - baileys_auth:/app/baileys_auth_info  # Persist WhatsApp auth state
+      - yglggw8e51wb6bnqeq8tfliq_baileys-auth:/app/baileys_auth_info
     networks:
-      - app-network
+      - yglggw8e51wb6bnqeq8tfliq
     restart: unless-stopped
     labels:
       - "coolify.proxy=true"
-      - "coolify.proxy.domain=${SERVICE_FQDN_BACKEND:-back.app.bymb.bh}"
-      - "coolify.proxy.port=${BACKEND_PORT:-3001}"
-      - "coolify.proxy.target_port=${BACKEND_PORT:-3001}"
+      - "coolify.proxy.domain=back.app.bymb.bh"
+      - "coolify.proxy.port=3001"
+      - "coolify.proxy.target_port=3001"
       - "coolify.proxy.ssl=true"
-      - "coolify.proxy.websocket=true"  # Critical for Socket.IO WebSocket support
+      - "coolify.proxy.websocket=true"
+      - "coolify.proxy.websocket.path=/socket.io"
 
   client:
     build:
-      context: ./client
+      context: /data/coolify/source/yglggw8e51wb6bnqeq8tfliq/client
       dockerfile: Dockerfile
       args:
         - PORT=${CLIENT_PORT:-3000}
-        - REACT_APP_API_URL=https://back.app.bymb.bh  # Public domain for Socket.IO
+        - REACT_APP_API_URL=https://back.app.bymb.bh
     environment:
       - PORT=${CLIENT_PORT:-3000}
       - SERVICE_URL_CLIENT=https://front.app.bymb.bh
@@ -42,13 +43,13 @@ services:
     depends_on:
       - backend
     networks:
-      - app-network
+      - yglggw8e51wb6bnqeq8tfliq
     restart: unless-stopped
     labels:
       - "coolify.proxy=true"
-      - "coolify.proxy.domain=${SERVICE_FQDN_CLIENT:-front.app.bymb.bh}"
-      - "coolify.proxy.port=${CLIENT_PORT:-3000}"
-      - "coolify.proxy.target_port=${CLIENT_PORT:-3000}"
+      - "coolify.proxy.domain=front.app.bymb.bh"
+      - "coolify.proxy.port=3000"
+      - "coolify.proxy.target_port=3000"
       - "coolify.proxy.ssl=true"
 
   signal-api:
@@ -58,19 +59,20 @@ services:
       - SERVICE_URL_SIGNAL_API=https://api.app.bymb.bh
       - SERVICE_FQDN_SIGNAL_API=api.app.bymb.bh
     networks:
-      - app-network
+      - yglggw8e51wb6bnqeq8tfliq
     restart: unless-stopped
     labels:
       - "coolify.proxy=true"
-      - "coolify.proxy.domain=${SERVICE_FQDN_SIGNAL_API:-api.app.bymb.bh}"
+      - "coolify.proxy.domain=api.app.bymb.bh"
       - "coolify.proxy.port=8080"
       - "coolify.proxy.target_port=8080"
       - "coolify.proxy.ssl=true"
 
 volumes:
-  baileys_auth:
+  yglggw8e51wb6bnqeq8tfliq_baileys-auth:
     driver: local
 
 networks:
-  app-network:
-    driver: bridge
+  yglggw8e51wb6bnqeq8tfliq:
+    name: yglggw8e51wb6bnqeq8tfliq
+    external: true
