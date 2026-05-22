@@ -26,6 +26,7 @@ services:
       - "coolify.proxy.port=${BACKEND_PORT:-3001}"
       - "coolify.proxy.target_port=${BACKEND_PORT:-3001}"
       - "coolify.proxy.ssl=true"
+      - "coolify.proxy.websocket=true"  # Critical for Socket.IO WebSocket support
 
   client:
     build:
@@ -33,7 +34,7 @@ services:
       dockerfile: Dockerfile
       args:
         - PORT=${CLIENT_PORT:-3000}
-        - REACT_APP_API_URL=http://backend:3001  # Internal Docker networking
+        - REACT_APP_API_URL=https://back.app.bymb.bh  # Public domain for Socket.IO
     environment:
       - PORT=${CLIENT_PORT:-3000}
       - SERVICE_URL_CLIENT=https://front.app.bymb.bh
