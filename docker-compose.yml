@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   backend:
     build:
@@ -6,16 +8,21 @@ services:
       args:
         - PORT=${BACKEND_PORT:-3001}
     extra_hosts:
-      - "localhost:host-gateway"
+      - "host.docker.internal:host-gateway"  # Allows backend to reach host machine if needed
     environment:
       - PORT=${BACKEND_PORT:-3001}
-      - SIGNAL_API_URL=http://signal-api:8080  # Internal Docker DNS
+      - SIGNAL_API_URL=http://signal-api:8080  # Use Docker service name for internal communication
       - NODE_ENV=${NODE_ENV:-production}
     volumes:
       - baileys_auth:/app/baileys_auth_info
     networks:
       - app-network
     restart: unless-stopped
+    labels:
+      - "coolify.proxy=true"
+      - "coolify.proxy.domain=backend.yourdomain.com"  # Replace with your actual domain
+      - "coolify.proxy.port=3001"  # Internal port of the backend service
+      - "coolify.proxy.target_port=3001"  # Target port for Coolify to forward requests to
 
   client:
     build:
@@ -23,7 +30,7 @@ services:
       dockerfile: Dockerfile
       args:
         - PORT=${CLIENT_PORT:-3000}
-        - REACT_APP_API_URL=http://backend:3001  # Internal Docker DNS
+        - REACT_APP_API_URL=http://backend:3001  # Use Docker service name for internal communication
     environment:
       - PORT=${CLIENT_PORT:-3000}
     depends_on:
@@ -31,6 +38,11 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+    labels:
+      - "coolify.proxy=true"
+      - "coolify.proxy.domain=client.yourdomain.com"  # Replace with your actual domain
+      - "coolify.proxy.port=3000"  # Internal port of the client service
+      - "coolify.proxy.target_port=3000"  # Target port for Coolify to forward requests to
 
   signal-api:
     image: bbernhard/signal-cli-rest-api
@@ -40,9 +52,10 @@ services:
       - app-network
     restart: unless-stopped
     labels:
-      - "coolify.proxy=true"  # Enable Coolify proxy for this service
-      - "coolify.proxy.domain=signal.yourdomain.com"  # Assign a domain/subdomain
-      - "coolify.proxy.port=8080"  # Internal port of the service
+      - "coolify.proxy=true"
+      - "coolify.proxy.domain=signal.yourdomain.com"  # Replace with your actual domain
+      - "coolify.proxy.port=8080"  # Internal port of the signal-api service
+      - "coolify.proxy.target_port=8080"  # Target port for Coolify to forward requests to
 
 volumes:
   baileys_auth:
