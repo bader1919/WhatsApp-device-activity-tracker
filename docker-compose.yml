@@ -8,11 +8,13 @@ services:
       args:
         - PORT=${BACKEND_PORT:-3001}
     extra_hosts:
-      - "host.docker.internal:host-gateway"  # Allows backend to reach host machine if needed
+      - "host.docker.internal:host-gateway"
     environment:
       - PORT=${BACKEND_PORT:-3001}
       - SIGNAL_API_URL=http://signal-api:8080  # Use Docker service name for internal communication
       - NODE_ENV=${NODE_ENV:-production}
+      - SERVICE_URL_BACKEND=${SERVICE_URL_BACKEND:-https://back.app.bymb.bh}
+      - SERVICE_FQDN_BACKEND=${SERVICE_FQDN_BACKEND:-back.app.bymb.bh}
     volumes:
       - baileys_auth:/app/baileys_auth_info
     networks:
@@ -20,9 +22,10 @@ services:
     restart: unless-stopped
     labels:
       - "coolify.proxy=true"
-      - "coolify.proxy.domain=backend.yourdomain.com"  # Replace with your actual domain
-      - "coolify.proxy.port=3001"  # Internal port of the backend service
-      - "coolify.proxy.target_port=3001"  # Target port for Coolify to forward requests to
+      - "coolify.proxy.domain=${SERVICE_FQDN_BACKEND:-back.app.bymb.bh}"
+      - "coolify.proxy.port=${BACKEND_PORT:-3001}"
+      - "coolify.proxy.target_port=${BACKEND_PORT:-3001}"
+      - "coolify.proxy.ssl=true"
 
   client:
     build:
@@ -33,6 +36,8 @@ services:
         - REACT_APP_API_URL=http://backend:3001  # Use Docker service name for internal communication
     environment:
       - PORT=${CLIENT_PORT:-3000}
+      - SERVICE_URL_CLIENT=${SERVICE_URL_CLIENT:-https://front.app.bymb.bh}
+      - SERVICE_FQDN_CLIENT=${SERVICE_FQDN_CLIENT:-front.app.bymb.bh}
     depends_on:
       - backend
     networks:
@@ -40,22 +45,26 @@ services:
     restart: unless-stopped
     labels:
       - "coolify.proxy=true"
-      - "coolify.proxy.domain=client.yourdomain.com"  # Replace with your actual domain
-      - "coolify.proxy.port=3000"  # Internal port of the client service
-      - "coolify.proxy.target_port=3000"  # Target port for Coolify to forward requests to
+      - "coolify.proxy.domain=${SERVICE_FQDN_CLIENT:-front.app.bymb.bh}"
+      - "coolify.proxy.port=${CLIENT_PORT:-3000}"
+      - "coolify.proxy.target_port=${CLIENT_PORT:-3000}"
+      - "coolify.proxy.ssl=true"
 
   signal-api:
     image: bbernhard/signal-cli-rest-api
     environment:
       - MODE=json-rpc
+      - SERVICE_URL_SIGNAL_API=${SERVICE_URL_SIGNAL_API:-https://api.app.bymb.bh}
+      - SERVICE_FQDN_SIGNAL_API=${SERVICE_FQDN_SIGNAL_API:-api.app.bymb.bh}
     networks:
       - app-network
     restart: unless-stopped
     labels:
       - "coolify.proxy=true"
-      - "coolify.proxy.domain=signal.yourdomain.com"  # Replace with your actual domain
-      - "coolify.proxy.port=8080"  # Internal port of the signal-api service
-      - "coolify.proxy.target_port=8080"  # Target port for Coolify to forward requests to
+      - "coolify.proxy.domain=${SERVICE_FQDN_SIGNAL_API:-api.app.bymb.bh}"
+      - "coolify.proxy.port=8080"
+      - "coolify.proxy.target_port=8080"
+      - "coolify.proxy.ssl=true"
 
 volumes:
   baileys_auth:
