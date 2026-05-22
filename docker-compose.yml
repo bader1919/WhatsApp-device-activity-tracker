@@ -70,7 +70,8 @@ services:
 
 volumes:
   yglggw8e51wb6bnqeq8tfliq_baileys-auth:
-    driver: local
+    name: yglggw8e51wb6bnqeq8tfliq_baileys-auth
+    external: true
 
 networks:
   yglggw8e51wb6bnqeq8tfliq:
