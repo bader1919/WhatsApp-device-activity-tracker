@@ -3,7 +3,7 @@ version: '3.8'
 services:
   backend:
     build:
-      context: /data/coolify/source/yglggw8e51wb6bnqeq8tfliq
+      context: /data/coolify/source/yglggw8e51wb6bnqeq8tfliq1
       dockerfile: Dockerfile
       args:
         - PORT=${BACKEND_PORT:-3001}
