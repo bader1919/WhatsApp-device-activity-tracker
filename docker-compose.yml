@@ -3,7 +3,7 @@ version: '3.8'
 services:
   backend:
     build:
-      context: /data/coolify/source/yglggw8e51wb6bnqeq8tfliq1
+      context: /data/coolify/source/yglggw8e51wb6bnqeq8tfliq11
       dockerfile: Dockerfile
       args:
         - PORT=${BACKEND_PORT:-3001}
@@ -16,18 +16,18 @@ services:
       - SERVICE_URL_BACKEND=https://back.app.bymb.bh
       - SERVICE_FQDN_BACKEND=back.app.bymb.bh
       - COOLIFY_BRANCH=master
-      - COOLIFY_RESOURCE_UUID=yglggw8e51wb6bnqeq8tfliq
-      - COOLIFY_CONTAINER_NAME=backend-yglggw8e51wb6bnqeq8tfliq-142943730065
+      - COOLIFY_RESOURCE_UUID=yglggw8e51wb6bnqeq8tfliq1
+      - COOLIFY_CONTAINER_NAME=backend-yglggw8e51wb6bnqeq8tfliq1-142943730065
       - SERVICE_URL_CLIENT=https://front.app.bymb.bh
       - SERVICE_FQDN_CLIENT=front.app.bymb.bh
       - SERVICE_URL_SIGNAL_API=https://api.app.bymb.bh
       - SERVICE_FQDN_SIGNAL_API=api.app.bymb.bh
     volumes:
-      - yglggw8e51wb6bnqeq8tfliq_baileys-auth:/app/baileys_auth_info
+      - yglggw8e51wb6bnqeq8tfliq1_baileys-auth:/app/baileys_auth_info
     networks:
-      - yglggw8e51wb6bnqeq8tfliq
+      - yglggw8e51wb6bnqeq8tfliq1
     restart: unless-stopped
-    container_name: backend-yglggw8e51wb6bnqeq8tfliq-142943730065
+    container_name: backend-yglggw8e51wb6bnqeq8tfliq1-142943730065
     labels:
       - "coolify.proxy=true"
       - "coolify.proxy.domain=back.app.bymb.bh"
@@ -39,7 +39,7 @@ services:
 
   client:
     build:
-      context: /data/coolify/source/yglggw8e51wb6bnqeq8tfliq/client
+      context: /data/coolify/source/yglggw8e51wb6bnqeq8tfliq1/client
       dockerfile: Dockerfile
       args:
         - PORT=${CLIENT_PORT:-3000}
@@ -49,16 +49,16 @@ services:
       - SERVICE_URL_CLIENT=https://front.app.bymb.bh
       - SERVICE_FQDN_CLIENT=front.app.bymb.bh
       - COOLIFY_BRANCH=master
-      - COOLIFY_RESOURCE_UUID=yglggw8e51wb6bnqeq8tfliq
-      - COOLIFY_CONTAINER_NAME=client-yglggw8e51wb6bnqeq8tfliq-142943748578
+      - COOLIFY_RESOURCE_UUID=yglggw8e51wb6bnqeq8tfliq1
+      - COOLIFY_CONTAINER_NAME=client-yglggw8e51wb6bnqeq8tfliq1-142943748578
       - SERVICE_URL_BACKEND=https://back.app.bymb.bh
       - SERVICE_FQDN_BACKEND=back.app.bymb.bh
     depends_on:
       - backend
     networks:
-      - yglggw8e51wb6bnqeq8tfliq
+      - yglggw8e51wb6bnqeq8tfliq1
     restart: unless-stopped
-    container_name: client-yglggw8e51wb6bnqeq8tfliq-142943748578
+    container_name: client-yglggw8e51wb6bnqeq8tfliq1-142943748578
     labels:
       - "coolify.proxy=true"
       - "coolify.proxy.domain=front.app.bymb.bh"
@@ -73,12 +73,12 @@ services:
       - SERVICE_URL_SIGNAL_API=https://api.app.bymb.bh
       - SERVICE_FQDN_SIGNAL_API=api.app.bymb.bh
       - COOLIFY_BRANCH=master
-      - COOLIFY_RESOURCE_UUID=yglggw8e51wb6bnqeq8tfliq
-      - COOLIFY_CONTAINER_NAME=signal-api-yglggw8e51wb6bnqeq8tfliq-142943756159
+      - COOLIFY_RESOURCE_UUID=yglggw8e51wb6bnqeq8tfliq1
+      - COOLIFY_CONTAINER_NAME=signal-api-yglggw8e51wb6bnqeq8tfliq1-142943756159
     networks:
-      - yglggw8e51wb6bnqeq8tfliq
+      - yglggw8e51wb6bnqeq8tfliq1
     restart: unless-stopped
-    container_name: signal-api-yglggw8e51wb6bnqeq8tfliq-142943756159
+    container_name: signal-api-yglggw8e51wb6bnqeq8tfliq1-142943756159
     labels:
       - "coolify.proxy=true"
       - "coolify.proxy.domain=api.app.bymb.bh"
@@ -87,11 +87,11 @@ services:
       - "coolify.proxy.ssl=true"
 
 volumes:
-  yglggw8e51wb6bnqeq8tfliq_baileys-auth:
-    name: yglggw8e51wb6bnqeq8tfliq_baileys-auth
+  yglggw8e51wb6bnqeq8tfliq1_baileys-auth:
+    name: yglggw8e51wb6bnqeq8tfliq1_baileys-auth
     external: true
 
 networks:
-  yglggw8e51wb6bnqeq8tfliq:
-    name: yglggw8e51wb6bnqeq8tfliq
+  yglggw8e51wb6bnqeq8tfliq1:
+    name: yglggw8e51wb6bnqeq8tfliq1
     external: true
