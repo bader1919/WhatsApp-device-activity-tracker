@@ -186,7 +186,7 @@ export function ContactCard({
                                     <XAxis dataKey="timestamp" hide />
                                     <YAxis domain={['auto', 'auto']} />
                                     <Tooltip
-                                        labelFormatter={(label) => {
+                                      labelFormatter={(label) => {
                                         const t = typeof label === "number" ? label : Number(label);
                                         if (!Number.isFinite(t)) return String(label ?? "");
                                         return new Date(t).toLocaleTimeString();
