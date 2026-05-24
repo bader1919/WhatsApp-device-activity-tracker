@@ -1,97 +1,56 @@
-version: '3.8'
-
 services:
   backend:
     build:
-      context: /data/coolify/source/yglggw8e51wb6bnqeq8tfliq1
+      context: .
       dockerfile: Dockerfile
       args:
         - PORT=${BACKEND_PORT:-3001}
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "localhost:host-gateway"
+    ports:
+      - "${BACKEND_PORT:-3001}:${BACKEND_PORT:-3001}"
     environment:
       - PORT=${BACKEND_PORT:-3001}
-      - SIGNAL_API_URL=http://signal-api:8080
+      - SIGNAL_API_URL=${SIGNAL_API_URL:-http://localhost:8080}
       - NODE_ENV=${NODE_ENV:-production}
-      - SERVICE_URL_BACKEND=https://back.app.bymb.bh
-      - SERVICE_FQDN_BACKEND=back.app.bymb.bh
-      - COOLIFY_BRANCH=master
-      - COOLIFY_RESOURCE_UUID=yglggw8e51wb6bnqeq8tfliq1
-      - COOLIFY_CONTAINER_NAME=backend-yglggw8e51wb6bnqeq8tfliq1-142943730065
-      - SERVICE_URL_CLIENT=https://front.app.bymb.bh
-      - SERVICE_FQDN_CLIENT=front.app.bymb.bh
-      - SERVICE_URL_SIGNAL_API=https://api.app.bymb.bh
-      - SERVICE_FQDN_SIGNAL_API=api.app.bymb.bh
     volumes:
-      - yglggw8e51wb6bnqeq8tfliq1_baileys-auth:/app/baileys_auth_info
+      # Persist WhatsApp auth state
+      - baileys_auth:/app/baileys_auth_info
     networks:
-      - yglggw8e51wb6bnqeq8tfliq1
+      - app-network
     restart: unless-stopped
-    container_name: backend-yglggw8e51wb6bnqeq8tfliq1-142943730065
-    labels:
-      - "coolify.proxy=true"
-      - "coolify.proxy.domain=back.app.bymb.bh"
-      - "coolify.proxy.port=3001"
-      - "coolify.proxy.target_port=3001"
-      - "coolify.proxy.ssl=true"
-      - "coolify.proxy.websocket=true"
-      - "coolify.proxy.websocket.path=/socket.io"
 
   client:
     build:
-      context: /data/coolify/source/yglggw8e51wb6bnqeq8tfliq1/client
+      context: ./client
       dockerfile: Dockerfile
       args:
         - PORT=${CLIENT_PORT:-3000}
-        - REACT_APP_API_URL=https://back.app.bymb.bh
+        - REACT_APP_API_URL=${BACKEND_URL:-http://localhost:3001}
+    ports:
+      - "${CLIENT_PORT:-3000}:${CLIENT_PORT:-3000}"
     environment:
       - PORT=${CLIENT_PORT:-3000}
-      - SERVICE_URL_CLIENT=https://front.app.bymb.bh
-      - SERVICE_FQDN_CLIENT=front.app.bymb.bh
-      - COOLIFY_BRANCH=master
-      - COOLIFY_RESOURCE_UUID=yglggw8e51wb6bnqeq8tfliq1
-      - COOLIFY_CONTAINER_NAME=client-yglggw8e51wb6bnqeq8tfliq1-142943748578
-      - SERVICE_URL_BACKEND=https://back.app.bymb.bh
-      - SERVICE_FQDN_BACKEND=back.app.bymb.bh
     depends_on:
       - backend
     networks:
-      - yglggw8e51wb6bnqeq8tfliq1
+      - app-network
     restart: unless-stopped
-    container_name: client-yglggw8e51wb6bnqeq8tfliq1-142943748578
-    labels:
-      - "coolify.proxy=true"
-      - "coolify.proxy.domain=front.app.bymb.bh"
-      - "coolify.proxy.port=3000"
-      - "coolify.proxy.target_port=3000"
-      - "coolify.proxy.ssl=true"
 
   signal-api:
     image: bbernhard/signal-cli-rest-api
+    ports:
+      - "8080:8080"
     environment:
       - MODE=json-rpc
-      - SERVICE_URL_SIGNAL_API=https://api.app.bymb.bh
-      - SERVICE_FQDN_SIGNAL_API=api.app.bymb.bh
-      - COOLIFY_BRANCH=master
-      - COOLIFY_RESOURCE_UUID=yglggw8e51wb6bnqeq8tfliq1
-      - COOLIFY_CONTAINER_NAME=signal-api-yglggw8e51wb6bnqeq8tfliq1-142943756159
-    networks:
-      - yglggw8e51wb6bnqeq8tfliq1
     restart: unless-stopped
-    container_name: signal-api-yglggw8e51wb6bnqeq8tfliq1-142943756159
-    labels:
-      - "coolify.proxy=true"
-      - "coolify.proxy.domain=api.app.bymb.bh"
-      - "coolify.proxy.port=8080"
-      - "coolify.proxy.target_port=8080"
-      - "coolify.proxy.ssl=true"
+    networks:
+      - app-network
 
 volumes:
-  yglggw8e51wb6bnqeq8tfliq1_baileys-auth:
-    name: yglggw8e51wb6bnqeq8tfliq1_baileys-auth
-    external: true
+  baileys_auth:
+    driver: local
 
 networks:
-  yglggw8e51wb6bnqeq8tfliq1:
-    name: yglggw8e51wb6bnqeq8tfliq1
-    external: true
+  app-network:
+    driver: bridge
