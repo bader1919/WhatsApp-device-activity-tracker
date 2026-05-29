@@ -3,28 +3,28 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install git and build dependencies
+# Install git and system compilation tools
 RUN apk add --no-cache git python3 make g++
 
-# Copy package files
+# Copy package management blueprints first to cache npm installation layer
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Install dependencies (ignore postinstall script that tries to install client deps)
+# Install dependencies cleanly (skipping client-side post-install logic scripts)
 RUN npm install --ignore-scripts
 
-# Copy source code
+# Pull in your active raw TypeScript source code
 COPY src ./src
 
-# Build TypeScript
+# Compile TypeScript down to production-ready JavaScript in the dist folder
 RUN npm run build
 
-# Expose port (can be overridden by environment variable)
+# Expose development runtime ports
 ARG PORT=3001
 ENV PORT=${PORT}
 EXPOSE ${PORT}
 
-# Create directory for WhatsApp auth state
-RUN mkdir -p /app/baileys_auth_info
+# ✅ FIXED: Correct directory path matching the hardcoded Baileys code session storage parameters
+RUN mkdir -p /app/auth_info_baileys
 
 CMD ["node", "dist/server.js"]

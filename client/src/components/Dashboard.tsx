@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import {Eye, EyeOff, Plus, Trash2, Zap, MessageCircle, Settings} from 'lucide-react';
+import {Eye, EyeOff, Plus, Trash2, Zap, MessageCircle, Settings, Clock} from 'lucide-react';
 import { socket, Platform, ConnectionState } from '../App';
 import { ContactCard } from './ContactCard';
 import { Login } from './Login';
+import { HistoryPanel } from './HistoryPanel';
 
 type ProbeMethod = 'delete' | 'reaction';
 
@@ -48,6 +49,7 @@ export function Dashboard({ connectionState }: DashboardProps) {
     const [privacyMode, setPrivacyMode] = useState(false);
     const [probeMethod, setProbeMethod] = useState<ProbeMethod>('delete');
     const [showConnections, setShowConnections] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
 
     useEffect(() => {
         function onTrackerUpdate(update: any) {
@@ -272,8 +274,8 @@ export function Dashboard({ connectionState }: DashboardProps) {
                         <button
                             onClick={() => setPrivacyMode(!privacyMode)}
                             className={`px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-200 ${
-                                privacyMode 
-                                    ? 'bg-green-600 text-white hover:bg-green-700 shadow-md' 
+                                privacyMode
+                                    ? 'bg-green-600 text-white hover:bg-green-700 shadow-md'
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                             title={privacyMode ? 'Privacy Mode: ON (Click to disable)' : 'Privacy Mode: OFF (Click to enable)'}
@@ -289,6 +291,18 @@ export function Dashboard({ connectionState }: DashboardProps) {
                                     <span>Privacy OFF</span>
                                 </>
                             )}
+                        </button>
+                        {/* Show History Toggle */}
+                        <button
+                            onClick={() => setShowHistory(!showHistory)}
+                            className={`px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-200 ${
+                                showHistory
+                                    ? 'bg-purple-600 text-white hover:bg-purple-700 shadow-md'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                        >
+                            <Clock size={20} />
+                            <span>{showHistory ? 'Hide History' : 'Show History'}</span>
                         </button>
                     </div>
                 </div>
@@ -373,6 +387,11 @@ export function Dashboard({ connectionState }: DashboardProps) {
                         />
                     ))}
                 </div>
+            )}
+
+            {/* History Panel */}
+            {showHistory && (
+                <HistoryPanel contacts={contacts} privacyMode={privacyMode} />
             )}
         </div>
     );

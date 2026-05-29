@@ -16,6 +16,9 @@ import { pino } from 'pino';
 import { Boom } from '@hapi/boom';
 import { WhatsAppTracker, ProbeMethod } from './tracker.js';
 import { SignalTracker, getSignalAccounts, checkSignalNumber } from './signal-tracker.js';
+import { setupDiskLogger } from './diskLogger.js';
+import fs from 'fs';
+import path from 'path';
 
 // Configuration
 const SIGNAL_API_URL = process.env.SIGNAL_API_URL || 'http://localhost:8080';
@@ -30,6 +33,9 @@ const io = new Server(httpServer, {
         methods: ["GET", "POST"]
     }
 });
+
+// Initialize persistent background recording
+setupDiskLogger(io);
 
 let sock: any;
 let isWhatsAppConnected = false;
@@ -46,7 +52,134 @@ interface TrackerEntry {
     platform: Platform;
 }
 
+interface SerializableTrackerEntry {
+    id: string;              // JID for WhatsApp, signal:+number for Signal
+    platform: Platform;      // 'whatsapp' | 'signal'
+    number: string;          // Clean phone number
+}
+
 const trackers: Map<string, TrackerEntry> = new Map(); // JID/Number -> Tracker entry
+
+async function saveTrackedTargets(): Promise<void> {
+    try {
+        const targetsPath = path.join(process.cwd(), 'auth_info_baileys', 'monitored_targets.json');
+
+        // Ensure directory exists
+        const dir = path.dirname(targetsPath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+
+        // Serialize trackers Map to array
+        const serializable: SerializableTrackerEntry[] = Array.from(trackers.entries()).map(([id, entry]) => ({
+            id,
+            platform: entry.platform,
+            number: entry.platform === 'signal'
+                ? id.replace('signal:', '').replace(/\+/g, '')
+                : id.split('@')[0],
+        }));
+
+        // Atomic write using temp file pattern
+        const tempPath = targetsPath + '.tmp';
+        fs.writeFileSync(tempPath, JSON.stringify(serializable, null, 2), 'utf8');
+        fs.renameSync(tempPath, targetsPath);
+
+        console.log(`[PERSIST] Saved ${serializable.length} tracked targets to disk`);
+    } catch (err) {
+        console.error('[PERSIST] Error saving tracked targets:', err);
+    }
+}
+
+async function reinstateTracker(target: SerializableTrackerEntry): Promise<void> {
+    if (target.platform === 'whatsapp') {
+        if (!sock) {
+            console.log('[PERSIST] WhatsApp socket not available');
+            return;
+        }
+
+        const results = await sock.onWhatsApp(target.id);
+        const result = results?.[0];
+
+        if (result?.exists) {
+            const tracker = new WhatsAppTracker(sock, result.jid);
+            tracker.setProbeMethod(globalProbeMethod);
+            trackers.set(result.jid, { tracker, platform: 'whatsapp' });
+
+            tracker.onUpdate = (updateData) => {
+                io.emit('tracker-update', {
+                    jid: result.jid,
+                    platform: 'whatsapp',
+                    ...updateData
+                });
+            };
+
+            tracker.startTracking();
+            console.log(`[PERSIST] Restored WhatsApp tracker for ${result.jid}`);
+        }
+    } else if (target.platform === 'signal') {
+        const cleanNumber = target.number.replace(/\D/g, '');
+        const targetNumber = cleanNumber.startsWith('+') ? cleanNumber : `+${cleanNumber}`;
+        const signalId = `signal:${cleanNumber}`;
+
+        if (!signalAccountNumber) {
+            console.log('[PERSIST] Signal account not available');
+            return;
+        }
+
+        const tracker = new SignalTracker(SIGNAL_API_URL, signalAccountNumber, targetNumber);
+        trackers.set(signalId, { tracker, platform: 'signal' });
+
+        tracker.onUpdate = (updateData) => {
+            io.emit('tracker-update', {
+                jid: signalId,
+                platform: 'signal',
+                ...updateData
+            });
+        };
+
+        tracker.startTracking();
+        console.log(`[PERSIST] Restored Signal tracker for ${signalId}`);
+    }
+}
+
+async function restoreTrackedTargets(): Promise<void> {
+    const targetsPath = path.join(process.cwd(), 'auth_info_baileys', 'monitored_targets.json');
+
+    if (!fs.existsSync(targetsPath)) {
+        console.log('[PERSIST] No saved targets file found, starting fresh');
+        return;
+    }
+
+    try {
+        const data = fs.readFileSync(targetsPath, 'utf8');
+        const savedTargets: SerializableTrackerEntry[] = JSON.parse(data);
+
+        console.log(`[PERSIST] Found ${savedTargets.length} saved targets, restoring...`);
+
+        for (const target of savedTargets) {
+            // Only restore targets for connected platforms
+            if (target.platform === 'whatsapp' && !isWhatsAppConnected) {
+                console.log(`[PERSIST] Skipping WhatsApp target ${target.id} - not connected`);
+                continue;
+            }
+
+            if (target.platform === 'signal' && !isSignalConnected) {
+                console.log(`[PERSIST] Skipping Signal target ${target.id} - not connected`);
+                continue;
+            }
+
+            try {
+                await reinstateTracker(target);
+            } catch (err) {
+                console.error(`[PERSIST] Failed to restore tracker for ${target.id}:`, err);
+            }
+        }
+
+        console.log('[PERSIST] Target restoration complete');
+    } catch (err) {
+        console.error('[PERSIST] Error restoring tracked targets:', err);
+    }
+}
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
@@ -80,6 +213,9 @@ async function connectToWhatsApp() {
             currentWhatsAppQr = null; // Clear QR on successful connection
             console.log('opened connection');
             io.emit('connection-open');
+
+            // Restore tracked targets on connection
+            restoreTrackedTargets().catch(err => console.error('Restore error:', err));
         }
     });
 
@@ -142,6 +278,9 @@ async function checkSignalConnection() {
                 signalLinkingInProgress = false;
                 console.log(`[SIGNAL] Connected with account: ${signalAccountNumber}`);
                 io.emit('signal-connection-open', { number: signalAccountNumber });
+
+                // Restore tracked targets on connection
+                restoreTrackedTargets().catch(err => console.error('Restore error:', err));
             }
         } else {
             if (isSignalConnected) {
@@ -328,6 +467,9 @@ io.on('connection', (socket) => {
                     platform: 'signal'
                 });
 
+                // Save tracked targets after adding
+                await saveTrackedTargets();
+
                 io.emit('contact-name', { jid: signalId, name: cleanNumber });
             } catch (err) {
                 console.error(err);
@@ -379,6 +521,9 @@ io.on('connection', (socket) => {
                         platform: 'whatsapp'
                     });
 
+                    // Save tracked targets after adding
+                    await saveTrackedTargets();
+
                     io.emit('profile-pic', { jid: result.jid, url: ppUrl });
                     io.emit('contact-name', { jid: result.jid, name: contactName });
                 } else {
@@ -398,6 +543,9 @@ io.on('connection', (socket) => {
             entry.tracker.stopTracking();
             trackers.delete(jid);
             socket.emit('contact-removed', jid);
+
+            // Save tracked targets after removal
+            saveTrackedTargets().catch(err => console.error('Save error after remove:', err));
         }
     });
 
@@ -423,7 +571,26 @@ io.on('connection', (socket) => {
     });
 });
 
+// REST API: Get tracking history
+app.get('/api/history', (req, res) => {
+    const historyPath = path.join(process.cwd(), 'auth_info_baileys', 'tracking_history.json');
+
+    if (!fs.existsSync(historyPath)) {
+        return res.json([]);
+    }
+
+    try {
+        const data = fs.readFileSync(historyPath, 'utf8');
+        const logs = JSON.parse(data);
+        res.json(logs);
+    } catch (err) {
+        console.error('[API] Error reading history:', err);
+        res.status(500).json({ error: 'Failed to read history file' });
+    }
+});
+
 const PORT = parseInt(process.env.PORT || '3001', 10);
 httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
