@@ -35,9 +35,10 @@ export function HistoryPanel({ contacts, privacyMode = false }: HistoryPanelProp
 
     const fetchHistory = async () => {
         try {
-            const response = await fetch('http://localhost:3001/api/history');
-            const data = await response.json();
-            setHistory(data);
+            const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/history`);
+            const result = await response.json();
+            // Handle both paginated response and legacy array format
+            setHistory(Array.isArray(result) ? result : (result.data || []));
             setLoading(false);
         } catch (err) {
             console.error('Failed to fetch history:', err);
@@ -148,6 +149,7 @@ export function HistoryPanel({ contacts, privacyMode = false }: HistoryPanelProp
             <TimelineChart
                 data={filteredHistory}
                 targetDevice={selectedDevice !== 'all' ? selectedDevice : undefined}
+                privacyMode={privacyMode}
             />
         </div>
     );

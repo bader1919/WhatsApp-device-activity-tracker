@@ -79,3 +79,7 @@ jspm_packages/
 .cache
 .parcel-cache
 package-lock.json
+# Development/debug files
+patch.js
+qr.txt
+*.tmp

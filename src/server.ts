@@ -181,7 +181,7 @@ async function restoreTrackedTargets(): Promise<void> {
     }
 }
 
-async function connectToWhatsApp() {
+async function connectToWhatsApp(): Promise<void> {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
 
     sock = makeWASocket({
@@ -252,7 +252,7 @@ async function checkSignalApiAvailable(): Promise<boolean> {
 }
 
 // Check Signal connection status
-async function checkSignalConnection() {
+async function checkSignalConnection(): Promise<void> {
     try {
         const available = await checkSignalApiAvailable();
         if (available !== signalApiAvailable) {
@@ -305,7 +305,7 @@ async function checkSignalConnection() {
 }
 
 // Start Signal device linking - signal-cli-rest-api returns QR as PNG image
-async function startSignalLinking() {
+async function startSignalLinking(): Promise<void> {
     if (signalLinkingInProgress || isSignalConnected) return;
 
     signalLinkingInProgress = true;
@@ -335,7 +335,7 @@ async function startSignalLinking() {
 }
 
 // Poll to check if Signal linking has completed
-async function pollSignalLinkingStatus() {
+async function pollSignalLinkingStatus(): Promise<void> {
     const checkInterval = setInterval(async () => {
         try {
             const accounts = await getSignalAccounts(SIGNAL_API_URL);
@@ -571,18 +571,35 @@ io.on('connection', (socket) => {
     });
 });
 
-// REST API: Get tracking history
+// REST API: Get tracking history with pagination
 app.get('/api/history', (req, res) => {
     const historyPath = path.join(process.cwd(), 'auth_info_baileys', 'tracking_history.json');
 
     if (!fs.existsSync(historyPath)) {
-        return res.json([]);
+        return res.json({ data: [], total: 0 });
     }
 
     try {
+        const limit = parseInt(req.query.limit as string) || '1000';
+        const offset = parseInt(req.query.offset as string) || '0';
+        const maxLimit = 10000;
+
+        // Validate and clamp limit
+        const validLimit = Math.min(Math.max(1, parseInt(limit.toString())), maxLimit);
+        const validOffset = Math.max(0, parseInt(offset.toString()));
+
         const data = fs.readFileSync(historyPath, 'utf8');
         const logs = JSON.parse(data);
-        res.json(logs);
+
+        // Apply pagination
+        const paginatedLogs = logs.slice(validOffset, validOffset + validLimit);
+
+        res.json({
+            data: paginatedLogs,
+            total: logs.length,
+            limit: validLimit,
+            offset: validOffset
+        });
     } catch (err) {
         console.error('[API] Error reading history:', err);
         res.status(500).json({ error: 'Failed to read history file' });

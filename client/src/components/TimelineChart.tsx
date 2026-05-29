@@ -15,9 +15,13 @@ interface HistoryEntry {
 interface TimelineChartProps {
     data: HistoryEntry[];
     targetDevice?: string;
+    privacyMode?: boolean;
 }
 
-export function TimelineChart({ data, targetDevice }: TimelineChartProps) {
+export function TimelineChart({ data, targetDevice, privacyMode = false }: TimelineChartProps) {
+    // Generate unique gradient ID for this chart instance to prevent collisions
+    const gradientId = `colorRtt-${Math.random().toString(36).substr(2, 9)}`;
+
     if (data.length === 0) {
         return (
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -54,7 +58,7 @@ export function TimelineChart({ data, targetDevice }: TimelineChartProps) {
                 <div className="flex items-center gap-3">
                     <Activity className="text-purple-600" size={20} />
                     <h3 className="text-lg font-semibold text-gray-900">Device State Timeline</h3>
-                    {targetDevice && <span className="text-sm text-gray-500">({targetDevice})</span>}
+                    {targetDevice && <span className="text-sm text-gray-500">({privacyMode ? targetDevice.replace(/\d/g, '•') : targetDevice})</span>}
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-1">
@@ -75,7 +79,7 @@ export function TimelineChart({ data, targetDevice }: TimelineChartProps) {
             <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={chartData}>
                     <defs>
-                        <linearGradient id="colorRtt" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
                             <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
                         </linearGradient>
@@ -108,7 +112,7 @@ export function TimelineChart({ data, targetDevice }: TimelineChartProps) {
                         dataKey="rtt"
                         stroke="#8b5cf6"
                         fillOpacity={1}
-                        fill="url(#colorRtt)"
+                        fill={`url(#${gradientId})`}
                         name="RTT"
                     />
                     <Line
