@@ -20,7 +20,7 @@ interface TimelineChartProps {
 
 export function TimelineChart({ data, targetDevice, privacyMode = false }: TimelineChartProps) {
     // Generate unique gradient ID for this chart instance to prevent collisions
-    const gradientId = `colorRtt-${Math.random().toString(36).substr(2, 9)}`;
+    const gradientId = `colorRtt-${Math.random().toString(36).slice(2, 11)}`;
 
     if (data.length === 0) {
         return (

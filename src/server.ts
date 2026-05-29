@@ -580,16 +580,22 @@ app.get('/api/history', (req, res) => {
     }
 
     try {
-        const limit = parseInt(req.query.limit as string) || '1000';
-        const offset = parseInt(req.query.offset as string) || '0';
+        const limit = parseInt(req.query.limit as string, 10) || 1000;
+        const offset = parseInt(req.query.offset as string, 10) || 0;
         const maxLimit = 10000;
 
-        // Validate and clamp limit
-        const validLimit = Math.min(Math.max(1, parseInt(limit.toString())), maxLimit);
-        const validOffset = Math.max(0, parseInt(offset.toString()));
+        // Validate and clamp limit with explicit NaN handling
+        const parsedLimit = parseInt(limit.toString(), 10);
+        const parsedOffset = parseInt(offset.toString(), 10);
+        const validLimit = Math.min(Math.max(1, isNaN(parsedLimit) ? 1000 : parsedLimit), maxLimit);
+        const validOffset = Math.max(0, isNaN(parsedOffset) ? 0 : parsedOffset);
 
         const data = fs.readFileSync(historyPath, 'utf8');
         const logs = JSON.parse(data);
+        if (!Array.isArray(logs)) {
+            console.error('[API] History file is not an array');
+            return res.status(500).json({ error: 'Invalid history data format' });
+        }
 
         // Apply pagination
         const paginatedLogs = logs.slice(validOffset, validOffset + validLimit);

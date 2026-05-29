@@ -35,7 +35,7 @@ export function HistoryPanel({ contacts, privacyMode = false }: HistoryPanelProp
 
     const fetchHistory = async () => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/history`);
+            const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/history`);
             const result = await response.json();
             // Handle both paginated response and legacy array format
             setHistory(Array.isArray(result) ? result : (result.data || []));
