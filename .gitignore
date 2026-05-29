@@ -79,6 +79,9 @@ jspm_packages/
 .cache
 .parcel-cache
 package-lock.json
+# Environment configuration
+.env
+.env.local
 # Development/debug files
 patch.js
 qr.txt
